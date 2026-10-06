@@ -57,7 +57,7 @@
 
 ## 已知限制（已验证，有绕过法）
 
-- **终端回显抓不到**：`get_term_output` 常报 "requires shell integration"。绕过：让终端命令把输出重定向到工作区内文件再 `read_file` 读回（已实测 `python --version` → `Python 3.13.12`）。
+- **终端回显抓不到**：`get_terminal_output` 常报 "requires shell integration"。绕过：让终端命令把输出重定向到工作区内文件再 `read_file` 读回（已实测 `python --version` → `Python 3.13.12`）。
   **根治（推荐）**：开启 VS Code 的 shell integration——`设置(JSON)` 加 `"terminal.integrated.shellIntegration.enabled": true`（PowerShell/cmd 默认已支持；Bash 在 VS Code 1.93+ 默认开启）。开启后可直接抓回显，无需重定向绕过。
 - **read_file 受 workspace 沙箱限制**：只能读工作区内的文件，区外会报 `resolves outside the workspace`。临时文件写到工作区内（带 `_diag` 前缀）。
 - **没有 `get_open_editors` 工具**：已开编辑器用 `open_file` 的返回确认即可。
