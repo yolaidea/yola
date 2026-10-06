@@ -57,13 +57,35 @@
 
 ## 已知限制（已验证，有绕过法）
 
-- **终端回显抓不到**：`get_terminal_output` 常报 "requires shell integration"。绕过：让终端命令把输出重定向到工作区内文件再 `read_file` 读回（已实测 `python --version` → `Python 3.13.12`）。
+- **终端回显抓不到**：`get_term_output` 常报 "requires shell integration"。绕过：让终端命令把输出重定向到工作区内文件再 `read_file` 读回（已实测 `python --version` → `Python 3.13.12`）。
+  **根治（推荐）**：开启 VS Code 的 shell integration——`设置(JSON)` 加 `"terminal.integrated.shellIntegration.enabled": true`（PowerShell/cmd 默认已支持；Bash 在 VS Code 1.93+ 默认开启）。开启后可直接抓回显，无需重定向绕过。
 - **read_file 受 workspace 沙箱限制**：只能读工作区内的文件，区外会报 `resolves outside the workspace`。临时文件写到工作区内（带 `_diag` 前缀）。
 - **没有 `get_open_editors` 工具**：已开编辑器用 `open_file` 的返回确认即可。
 
 更多踩坑与完整工具参数见 `SKILL.md`。
 
 ---
+
+## 一键健康检查（自动诊断本地前提）
+
+随附 `healthcheck.ps1`，一键跑 S1–S3 本地检查并定位连不上的故障点：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File healthcheck.ps1
+```
+
+它检查 code 命令、扩展安装、9876–9880 端口监听、mcp.json 端口匹配，并给出逐项修复提示。S4/S5 仍需在 WorkBuddy 侧确认。
+
+## 进阶：完全自托管（fork，可选）
+
+底层依赖 `nabheet/vscode-ide-mcp`（MIT，个人维护）。想彻底去第三方依赖并署名，推荐 **fork 而非从零重写**（nabheet 已 MIT 开源，从零重写是重复造轮子）：
+
+1. Fork https://github.com/nabheet/vscode-mcp-server ，你即维护者。
+2. 可加缺失工具（如 `get_open_editors`）、锁版本、改默认端口。
+3. 本地打包 `code --install-extension <你的.vsix> --force`，mcp.json 端口不变。
+4. 本 skill 其余用法不变。
+
+如此同时解决"第三方依赖风险"和"能力受限"两个卡脖子问题，成本远低于从零写扩展。
 
 ## 许可证
 

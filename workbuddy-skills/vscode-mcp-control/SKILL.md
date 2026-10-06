@@ -51,7 +51,8 @@ WorkBuddy 默认只能直接读写磁盘文件、在自带沙箱 Bash 里跑命�
 ## ⚠️ 真实踩坑（必看，已逐个验证）
 
 1. **`code mcp` 是假的**：VS Code 官方**没有**把自身作为 MCP server 的命令（`code --help` 子命令只有 `chat / serve-web / agent / tunnel`）。想让外部 AI 连 VSCode，只能装第三方扩展（如 nabheet/vscode-ide-mcp）。`"command":"code","args":["mcp"]` 会报 `MCP error -32000: Connection closed`（进程秒退）。
-2. **终端回显抓不到**：`get_terminal_output` 常报 "requires shell integration"——很多 VSCode 终端没启用 shell 集成。绕过法：让终端命令把输出重定向到**工作区内**文件（`cmd > file 2>&1`），再用 `read_file` 读回。已实测拿到 `python --version` 的 `Python 3.13.12`、`6*7=42`。
+2. **终端回显抓不到**：`get_terminal_output` 常报 "requires shell integration"——很多 VSCode 终端没启用 shell 集成。**绕过法（已实测）**：让终端命令把输出重定向到**工作区内**文件（`cmd > file 2>&1`），再用 `read_file` 读回。已实测拿到 `python --version` 的 `Python 3.13.12`、`6*7=42`。
+   **根治（推荐）**：开启 VS Code 的 shell integration——`设置(JSON)` 加入 `"terminal.integrated.shellIntegration.enabled": true`（PowerShell/cmd 默认已支持；Bash 在 VS Code 1.93+ 默认开启，老版本加 `"terminal.integrated.shellIntegration.bashEnabled": true`）。开启后 `get_terminal_output` 可直接抓回显，无需重定向绕过。
 3. **read_file 受 workspace 沙箱限制**：只能读工作区内的文件，读区外报 `resolves outside the workspace`。临时文件写到工作区内（带 `_diag` 前缀）。
 4. **execute_command 不要传 `return` 字段**：只需 `{command:"..."}`（可选 `args`）。传多余字段会报错。
 5. **没有 `get_open_editors` 工具**：列举已开编辑器用 `open_file` 的返回确认即可。
@@ -85,3 +86,24 @@ search_files(query)        → grep
 execute_in_terminal(...)   → 终端（重定向+read_file 取输出）
 delete_file(...)           → 清理
 ```
+
+## 一键健康检查（本地前提自动诊断）
+
+随附 `healthcheck.ps1`，自动跑 S1–S3 本地检查并定位连不上的故障点：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File healthcheck.ps1
+```
+
+脚本检查：code 命令是否可用、扩展是否安装、9876–9880 端口是否监听、mcp.json 的 vscode.url 端口是否匹配，并给出逐项修复提示。S4（工具列表出现 `mcp__vscode__*`）与 S5（真实功能动作）仍需在 WorkBuddy 连接器页确认。
+
+## 进阶：完全自托管（fork 方案，可选）
+
+本 skill 底层依赖第三方扩展 `nabheet/vscode-ide-mcp`（MIT，个人维护）。若你想彻底去除“依赖陌生第三方”的焦虑并获完全掌控/署名权，推荐 **fork 而非从零重写**（nabheet 已 MIT 开源，从零重写属重复造轮子）：
+
+1. Fork 仓库：https://github.com/nabheet/vscode-mcp-server
+2. 你成为维护者 —— 可加缺失工具（如 `get_open_editors`）、锁版本、改默认端口。
+3. 本地打包安装：`code --install-extension <你的.vsix> --force`，mcp.json 的 url 端口不变。
+4. 本 skill 其余用法完全不变。
+
+如此“第三方依赖风险”与“能力受限”两个卡脖子问题一并解决，且成本远低于从零写一个完整 MCP 扩展。
